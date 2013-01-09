@@ -1,0 +1,29 @@
+# delete the old file
+hadoop fs -rm -R /clouderamovies/a3
+hadoop fs -rm -R /clouderamovies/a4
+hadoop fs -rm /clouderamovies/a3.log
+
+hadoop fs -ls /clouderamovies/
+
+# add the new file to test
+hadoop fs -put a3.log /clouderamovies/a3.log
+
+#Load data from file into HDFS 
+hadoop jar $STREAMJAR -Dmapred.reduce.task=0 -input /clouderamovies/a3.log -output /clouderamovies/a3 -mapper createAccessLogInHDFS.py -file createAccessLogInHDFS.py
+
+hadoop jar $STREAMJAR -Dmapred.reduce.task=0 -input /clouderamovies/access_fixed_small.log -output /clouderamovies/a4 -mapper createAccessLogInHDFS.py -file createAccessLogInHDFS.py
+
+hadoop jar $STREAMJAR -Dmapred.reduce.task=0 -input /clouderamovies/a3.log -output /clouderamovies/access_ip -mapper createHDFS_GEO.py -file createHDFS_GEO.py
+
+hadoop jar $STREAMJAR -Dmapred.reduce.task=0 -input /clouderamovies/access_fixed_small.log -output /clouderamovies/access_ip -mapper createHDFS_GEO.py -file createHDFS_GEO.py -cacheFile 'hdfs://localhost:8020/clouderamovies/GeoLiteCity.dat#geoip' -verbose
+
+hadoop jar $STREAMJAR -Dmapred.reduce.task=0 -input /clouderamovies/access_fixed_small.log -output /clouderamovies/a6 -mapper createHDFS_GEO.py -file createHDFS_GEO.py -cacheFile 'hdfs://localhost:8020/clouderamovies/GeoLiteCity.dat#geoip' -verbose
+
+hadoop jar $STREAMJAR -Dmapred.reduce.task=0 -input /clouderamovies/access_fixed_small.log -output /clouderamovies/a6 -mapper createHDFS_GEO.py -file createHDFS_GEO.py -cacheArchive 'hdfs://localhost:8020/clouderamovies/geoip.tgz#geoip' -verbose
+
+
+#validate the file content
+hadoop fs -tail /clouderamovies/a3/part-00000
+
+# load the data into HIVE
+hive -f create_access_logs.hql
